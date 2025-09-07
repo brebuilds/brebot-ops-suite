@@ -8,6 +8,7 @@ import { SettingsTab } from "@/components/tabs/SettingsTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Bot, Activity, Clock, Settings, Bot as BotIcon } from "lucide-react";
+import { BotsInterface } from "@/components/bots/BotsInterface";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("chat");
   const [isSetupComplete, setIsSetupComplete] = useState(false);
@@ -50,7 +51,7 @@ const Index = () => {
                   </TabsTrigger>
                   <TabsTrigger value="setup" className="flex items-center gap-2 text-xs">
                     <BotIcon className="h-3 w-3" />
-                    Build a Bot
+                    Bots
                   </TabsTrigger>
                   <TabsTrigger value="settings" className="flex items-center gap-2 text-xs">
                     <Settings className="h-3 w-3" />
@@ -82,12 +83,20 @@ const Index = () => {
             
             <TabsContent value="setup" className="mt-0 h-full">
               <div className="space-y-6">
-                {!isSetupComplete && <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <p className="text-amber-600 dark:text-amber-400 text-sm">
-                      <strong>Setup Required:</strong> Complete the setup wizard to build your bot
+                <BotsInterface />
+                
+                {!isSetupComplete && (
+                  <div className="mt-8 p-6 bg-primary/5 border border-primary/20 rounded-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Bot className="h-5 w-5 text-primary" />
+                      <h3 className="font-medium text-foreground">Build Your First Bot</h3>
+                    </div>
+                    <p className="text-muted-foreground text-sm mb-4">
+                      Complete the setup wizard to create and configure your initial bot
                     </p>
-                  </div>}
-                <SetupWizard onComplete={handleSetupComplete} />
+                    <SetupWizard onComplete={handleSetupComplete} />
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>}
