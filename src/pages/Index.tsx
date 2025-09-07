@@ -8,19 +8,15 @@ import { SettingsTab } from "@/components/tabs/SettingsTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Bot, Activity, Clock, Settings, Bot as BotIcon } from "lucide-react";
-
 const Index = () => {
   const [activeTab, setActiveTab] = useState("chat");
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
-
   const handleSetupComplete = () => {
     setIsSetupComplete(true);
     setIsSetupWizardOpen(false);
   };
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
+  return <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-card-border bg-card/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -30,18 +26,16 @@ const Index = () => {
                 <Bot className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">BreBot Operator</h1>
+                <h1 className="text-xl font-semibold text-foreground">BreBot</h1>
                 <p className="text-sm text-muted-foreground">Privacy-first AI assistant platform</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               {/* Status Indicator */}
-              {isSetupComplete && (
-                <div className="flex items-center gap-2 text-sm">
+              {isSetupComplete && <div className="flex items-center gap-2 text-sm">
                   <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
                   <span className="text-success-foreground">Online</span>
-                </div>
-              )}
+                </div>}
               
               {/* Main Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -71,12 +65,9 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full p-6">
-        {activeTab === "chat" || (!["status", "history", "settings", "setup"].includes(activeTab)) ? (
-          <div className="h-full">
+        {activeTab === "chat" || !["status", "history", "settings", "setup"].includes(activeTab) ? <div className="h-full">
             <ChatInterface isSetupComplete={isSetupComplete} />
-          </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+          </div> : <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
             <TabsContent value="status" className="mt-0 h-full">
               <StatusTab />
             </TabsContent>
@@ -91,21 +82,16 @@ const Index = () => {
             
             <TabsContent value="setup" className="mt-0 h-full">
               <div className="space-y-6">
-                {!isSetupComplete && (
-                  <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                {!isSetupComplete && <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                     <p className="text-amber-600 dark:text-amber-400 text-sm">
                       <strong>Setup Required:</strong> Complete the setup wizard to build your bot
                     </p>
-                  </div>
-                )}
+                  </div>}
                 <SetupWizard onComplete={handleSetupComplete} />
               </div>
             </TabsContent>
-          </Tabs>
-        )}
+          </Tabs>}
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
