@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Database, Folder, Mail, FileText, Play, RefreshCw } from "lucide-react";
+import { Database, Folder, Mail, FileText, Play, RefreshCw, Plus, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 
 interface SourcesStepProps {
   onComplete: () => void;
@@ -22,6 +22,36 @@ interface Source {
   icon: any;
 }
 
+const suggestedSources = [
+  {
+    category: "Email & Communication",
+    sources: [
+      { name: "Gmail", type: "email", icon: Mail, method: "OAuth", description: "Connect via Google OAuth for secure access" },
+      { name: "Outlook", type: "email", icon: Mail, method: "OAuth", description: "Microsoft OAuth integration" },
+      { name: "IMAP Email", type: "email", icon: Mail, method: "Manual", description: "Any IMAP-compatible email (Gmail, Yahoo, etc.)" },
+      { name: "Slack Channels", type: "chat", icon: Mail, method: "API", description: "Export channel history via Slack API" },
+    ]
+  },
+  {
+    category: "Note-Taking & Knowledge",
+    sources: [
+      { name: "Notion", type: "notion", icon: FileText, method: "API", description: "Connect via Notion API token" },
+      { name: "Obsidian", type: "obsidian", icon: Database, method: "Direct", description: "Point to your local vault folder" },
+      { name: "Roam Research", type: "roam", icon: FileText, method: "Export", description: "Export JSON and import here" },
+      { name: "Logseq", type: "logseq", icon: Database, method: "Direct", description: "Point to your local graph folder" },
+    ]
+  },
+  {
+    category: "Files & Documents", 
+    sources: [
+      { name: "Local Folder", type: "folder", icon: Folder, method: "Direct", description: "Monitor a local folder for new files" },
+      { name: "Google Drive", type: "drive", icon: Folder, method: "OAuth", description: "Connect via Google Drive API" },
+      { name: "Dropbox", type: "dropbox", icon: Folder, method: "OAuth", description: "Sync from Dropbox folders" },
+      { name: "OneDrive", type: "onedrive", icon: Folder, method: "OAuth", description: "Microsoft OneDrive integration" },
+    ]
+  }
+];
+
 export function SourcesStep({ onComplete, isCompleted }: SourcesStepProps) {
   const [sources, setSources] = useState<Source[]>([
     { id: '1', type: 'email', name: 'IMAP Email', path: '', active: false, icon: Mail },
@@ -29,6 +59,20 @@ export function SourcesStep({ onComplete, isCompleted }: SourcesStepProps) {
     { id: '3', type: 'notion', name: 'Notion Import', path: '', active: false, icon: FileText },
     { id: '4', type: 'obsidian', name: 'Obsidian Vault', path: '', active: false, icon: Database },
   ]);
+  
+  const [showSuggestions, setShowSuggestions] = useState(true);
+
+  const addSourceFromSuggestion = (suggestion: any) => {
+    const newSource: Source = {
+      id: Date.now().toString(),
+      type: suggestion.type,
+      name: suggestion.name,
+      path: '',
+      active: false,
+      icon: suggestion.icon
+    };
+    setSources(prev => [...prev, newSource]);
+  };
 
   const [ingestProgress, setIngestProgress] = useState({
     processedNotes: 0,
@@ -98,9 +142,96 @@ export function SourcesStep({ onComplete, isCompleted }: SourcesStepProps) {
 
   return (
     <div className="space-y-8">
-      {/* Sources Configuration */}
+      {/* Suggested Sources */}
+      {showSuggestions && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Suggested Sources</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSuggestions(false)}
+              className="flex items-center gap-2"
+            >
+              <ChevronUp className="h-4 w-4" />
+              Hide Suggestions
+            </Button>
+          </div>
+          
+          <div className="space-y-6">
+            {suggestedSources.map((category) => (
+              <div key={category.category} className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                  {category.category}
+                </h4>
+                <div className="grid gap-3">
+                  {category.sources.map((source) => {
+                    const Icon = source.icon;
+                    const methodColors = {
+                      OAuth: "bg-success/20 text-success border-success/30",
+                      API: "bg-warning/20 text-warning border-warning/30", 
+                      Direct: "bg-primary/20 text-primary border-primary/30",
+                      Manual: "bg-muted text-muted-foreground border-border",
+                      Export: "bg-accent/20 text-accent-foreground border-accent/30"
+                    };
+                    
+                    return (
+                      <Card key={source.name} className="hover:border-primary/50 transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 rounded-lg bg-muted">
+                              <Icon className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Label className="font-medium">{source.name}</Label>
+                                <Badge className={`text-xs ${methodColors[source.method as keyof typeof methodColors]}`}>
+                                  {source.method}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{source.description}</p>
+                            </div>
+                            
+                            <Button
+                              size="sm"
+                              onClick={() => addSourceFromSuggestion(source)}
+                              className="flex items-center gap-2"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Add
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {!showSuggestions && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setShowSuggestions(true)}
+            className="flex items-center gap-2"
+          >
+            <ChevronDown className="h-4 w-4" />
+            Show Suggested Sources
+          </Button>
+        </div>
+      )}
+
+      {/* Active Sources Configuration */}
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold">Data Sources</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Active Sources</h3>
+          <Badge variant="outline">{sources.filter(s => s.active).length} active</Badge>
+        </div>
         
         <div className="grid gap-4">
           {sources.map((source) => {
