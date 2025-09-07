@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SetupWizard } from "@/components/wizard/SetupWizard";
 import { OperatorConsole } from "@/components/console/OperatorConsole";
+import { SettingsPanel } from "@/components/console/panels/SettingsPanel";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Bot, Settings, Zap } from "lucide-react";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("wizard");
   const [isSetupComplete, setIsSetupComplete] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleSetupComplete = () => {
     setIsSetupComplete(true);
@@ -30,10 +33,20 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
+              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>BreBot Settings</DialogTitle>
+                  </DialogHeader>
+                  <SettingsPanel />
+                </DialogContent>
+              </Dialog>
               {isSetupComplete && (
                 <div className="flex items-center gap-2 text-sm">
                   <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
@@ -55,11 +68,10 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger 
               value="console" 
-              disabled={!isSetupComplete}
               className="flex items-center gap-2"
             >
               <Zap className="h-4 w-4" />
-              Console
+              {isSetupComplete ? "Console" : "Console (Preview)"}
             </TabsTrigger>
           </TabsList>
 
@@ -68,13 +80,14 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="console" className="space-y-6">
-            {isSetupComplete ? (
-              <OperatorConsole />
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Complete the setup wizard first</p>
+            {!isSetupComplete && (
+              <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <p className="text-amber-600 dark:text-amber-400 text-sm">
+                  <strong>Preview Mode:</strong> Complete the setup wizard to unlock full functionality
+                </p>
               </div>
             )}
+            <OperatorConsole isPreviewMode={!isSetupComplete} />
           </TabsContent>
         </Tabs>
       </main>

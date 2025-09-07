@@ -22,7 +22,11 @@ import {
   CheckCircle
 } from "lucide-react";
 
-export function OperatorConsole() {
+interface OperatorConsoleProps {
+  isPreviewMode?: boolean;
+}
+
+export function OperatorConsole({ isPreviewMode = false }: OperatorConsoleProps) {
   const [activePanel, setActivePanel] = useState("chat");
 
   // Mock status data
@@ -156,9 +160,9 @@ export function OperatorConsole() {
           })}
         </TabsList>
 
-        <TabsContent value="chat" className="space-y-4">
-          <ChatCommand />
-        </TabsContent>
+          <TabsContent value="chat" className="space-y-4">
+            <ChatCommand isPreviewMode={isPreviewMode} />
+          </TabsContent>
 
         <TabsContent value="approvals" className="space-y-4">
           <ApprovalsQueue />

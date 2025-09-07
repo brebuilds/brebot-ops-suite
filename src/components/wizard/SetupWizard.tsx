@@ -59,7 +59,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               return (
                 <div 
                   key={step.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  onClick={() => setCurrentStep(step.id)}
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer hover:bg-muted/80 ${
                     isCurrent ? 'bg-primary/10 border border-primary/20' : 
                     isCompleted ? 'bg-success/10' : 'bg-muted/50'
                   }`}

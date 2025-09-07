@@ -20,7 +20,11 @@ interface Message {
   }>;
 }
 
-export function ChatCommand() {
+interface ChatCommandProps {
+  isPreviewMode?: boolean;
+}
+
+export function ChatCommand({ isPreviewMode = false }: ChatCommandProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -276,7 +280,11 @@ export function ChatCommand() {
                 className="flex-1"
               />
               
-              <Button onClick={sendMessage} disabled={!input.trim()}>
+              <Button 
+                onClick={sendMessage} 
+                disabled={!input.trim() || isPreviewMode}
+                title={isPreviewMode ? "Complete setup to enable chat" : "Send message"}
+              >
                 <Send className="h-4 w-4" />
               </Button>
             </div>
