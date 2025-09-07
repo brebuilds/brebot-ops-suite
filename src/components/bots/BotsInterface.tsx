@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bot, Users, Plus, CheckCircle, AlertTriangle, Pause, Search } from "lucide-react";
+import { BotSetupWizard } from "./BotSetupWizard";
 
 interface BotEmployee {
   id: string;
@@ -128,6 +129,8 @@ const getStatusColor = (status: BotEmployee["status"]) => {
 
 export function BotsInterface() {
   const [selectedBot, setSelectedBot] = useState<BotEmployee | null>(null);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [setupBotType, setSetupBotType] = useState<"brebot" | "employee" | null>(null);
 
   const departments = Array.from(new Set(mockEmployees.map(emp => emp.department)));
   
@@ -150,7 +153,13 @@ export function BotsInterface() {
             Manage your bot workforce and organizational structure
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-glow">
+        <Button 
+          className="bg-gradient-primary text-primary-foreground shadow-glow"
+          onClick={() => {
+            setSetupBotType("employee");
+            setShowSetupWizard(true);
+          }}
+        >
           <Plus className="h-4 w-4 mr-2" />
           Hire New Bot
         </Button>
@@ -293,14 +302,31 @@ export function BotsInterface() {
               {/* Actions */}
               <div className="flex justify-end gap-3 pt-4 border-t border-card-border">
                 <Button variant="outline">Edit Bot</Button>
-                <Button className="bg-gradient-primary text-primary-foreground">
-                  Configure
+                <Button 
+                  className="bg-gradient-primary text-primary-foreground"
+                  onClick={() => {
+                    setSetupBotType(selectedBot?.id === "ceo-001" ? "brebot" : "employee");
+                    setShowSetupWizard(true);
+                    setSelectedBot(null);
+                  }}
+                >
+                  {selectedBot?.id === "ceo-001" ? "Deep Configure" : "Configure"}
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Bot Setup Wizard */}
+      <BotSetupWizard
+        isOpen={showSetupWizard}
+        onClose={() => {
+          setShowSetupWizard(false);
+          setSetupBotType(null);
+        }}
+        botType={setupBotType}
+      />
     </div>
   );
 }
