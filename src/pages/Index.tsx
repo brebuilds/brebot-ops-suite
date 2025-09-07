@@ -1,24 +1,26 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SetupWizard } from "@/components/wizard/SetupWizard";
-import { OperatorConsole } from "@/components/console/OperatorConsole";
-import { SettingsPanel } from "@/components/console/panels/SettingsPanel";
-import { Button } from "@/components/ui/button";
+import { ChatInterface } from "@/components/chat/ChatInterface";
+import { StatusTab } from "@/components/tabs/StatusTab";
+import { HistoryTab } from "@/components/tabs/HistoryTab";
+import { SettingsTab } from "@/components/tabs/SettingsTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Bot, Settings, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Bot, Activity, Clock, Settings, Bot as BotIcon } from "lucide-react";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("wizard");
+  const [activeTab, setActiveTab] = useState("chat");
   const [isSetupComplete, setIsSetupComplete] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
 
   const handleSetupComplete = () => {
     setIsSetupComplete(true);
-    setActiveTab("console");
+    setIsSetupWizardOpen(false);
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-card-border bg-card/50 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -32,64 +34,75 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Privacy-first AI assistant platform</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>BreBot Settings</DialogTitle>
-                  </DialogHeader>
-                  <SettingsPanel />
-                </DialogContent>
-              </Dialog>
+            <div className="flex items-center gap-4">
+              {/* Status Indicator */}
               {isSetupComplete && (
                 <div className="flex items-center gap-2 text-sm">
                   <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
                   <span className="text-success-foreground">Online</span>
                 </div>
               )}
+              
+              {/* Main Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="bg-muted">
+                  <TabsTrigger value="status" className="flex items-center gap-2 text-xs">
+                    <Activity className="h-3 w-3" />
+                    Status
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="flex items-center gap-2 text-xs">
+                    <Clock className="h-3 w-3" />
+                    History
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" className="flex items-center gap-2 text-xs">
+                    <Settings className="h-3 w-3" />
+                    Settings
+                  </TabsTrigger>
+                  <TabsTrigger value="setup" className="flex items-center gap-2 text-xs">
+                    <BotIcon className="h-3 w-3" />
+                    Build a Bot
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
-            <TabsTrigger value="wizard" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Setup Wizard
-            </TabsTrigger>
-            <TabsTrigger 
-              value="console" 
-              className="flex items-center gap-2"
-            >
-              <Zap className="h-4 w-4" />
-              {isSetupComplete ? "Console" : "Console (Preview)"}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="wizard" className="space-y-6">
-            <SetupWizard onComplete={handleSetupComplete} />
-          </TabsContent>
-
-          <TabsContent value="console" className="space-y-6">
-            {!isSetupComplete && (
-              <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                <p className="text-amber-600 dark:text-amber-400 text-sm">
-                  <strong>Preview Mode:</strong> Complete the setup wizard to unlock full functionality
-                </p>
+      <main className="flex-1 max-w-7xl mx-auto w-full p-6">
+        {activeTab === "chat" || (!["status", "history", "settings", "setup"].includes(activeTab)) ? (
+          <div className="h-full">
+            <ChatInterface isSetupComplete={isSetupComplete} />
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+            <TabsContent value="status" className="mt-0 h-full">
+              <StatusTab />
+            </TabsContent>
+            
+            <TabsContent value="history" className="mt-0 h-full">
+              <HistoryTab />
+            </TabsContent>
+            
+            <TabsContent value="settings" className="mt-0 h-full">
+              <SettingsTab />
+            </TabsContent>
+            
+            <TabsContent value="setup" className="mt-0 h-full">
+              <div className="space-y-6">
+                {!isSetupComplete && (
+                  <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <p className="text-amber-600 dark:text-amber-400 text-sm">
+                      <strong>Setup Required:</strong> Complete the setup wizard to build your bot
+                    </p>
+                  </div>
+                )}
+                <SetupWizard onComplete={handleSetupComplete} />
               </div>
-            )}
-            <OperatorConsole isPreviewMode={!isSetupComplete} />
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        )}
       </main>
     </div>
   );
