@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Database, Folder, Mail, FileText, Play, RefreshCw, Plus, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Database, Folder, Mail, FileText, Play, RefreshCw, Plus, ExternalLink, ChevronDown, ChevronUp, Upload, File, X } from "lucide-react";
 
 interface SourcesStepProps {
   onComplete: () => void;
   isCompleted: boolean;
+}
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  progress?: number;
 }
 
 interface Source {
@@ -61,6 +70,8 @@ export function SourcesStep({ onComplete, isCompleted }: SourcesStepProps) {
   ]);
   
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const addSourceFromSuggestion = (suggestion: any) => {
     const newSource: Source = {
@@ -72,6 +83,72 @@ export function SourcesStep({ onComplete, isCompleted }: SourcesStepProps) {
       icon: suggestion.icon
     };
     setSources(prev => [...prev, newSource]);
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.currentTarget === e.target) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
+  }, []);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    processFiles(files);
+  }, []);
+
+  const processFiles = (files: File[]) => {
+    const newFiles: UploadedFile[] = files.map(file => ({
+      id: Date.now().toString() + Math.random(),
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      status: 'pending'
+    }));
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+
+    // Start processing each file
+    newFiles.forEach(file => {
+      setTimeout(() => {
+        setUploadedFiles(prev => 
+          prev.map(f => f.id === file.id ? { ...f, status: 'processing', progress: 0 } : f)
+        );
+
+        // Simulate processing with progress
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += Math.random() * 20;
+          if (progress >= 100) {
+            setUploadedFiles(prev => 
+              prev.map(f => f.id === file.id ? { ...f, status: 'completed', progress: 100 } : f)
+            );
+            clearInterval(interval);
+          } else {
+            setUploadedFiles(prev => 
+              prev.map(f => f.id === file.id ? { ...f, progress } : f)
+            );
+          }
+        }, 500);
+      }, Math.random() * 1000);
+    });
+  };
+
+  const removeFile = (fileId: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
   };
 
   const [ingestProgress, setIngestProgress] = useState({
@@ -225,6 +302,97 @@ export function SourcesStep({ onComplete, isCompleted }: SourcesStepProps) {
           </Button>
         </div>
       )}
+
+      {/* File Upload Zone */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Direct File Upload</h3>
+            <p className="text-sm text-muted-foreground">
+              Drag & drop files for immediate ingestion into LanceDB vector store
+            </p>
+          </div>
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+            LanceDB
+          </Badge>
+        </div>
+
+        <div
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+            isDragging 
+              ? 'border-primary bg-primary/5' 
+              : 'border-border hover:border-primary/50'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Drop files here</h3>
+          <p className="text-muted-foreground mb-4">
+            Supports: PDF, TXT, MD, DOCX, emails, notes, and more
+          </p>
+          <input
+            type="file"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+            id="file-upload"
+            accept=".pdf,.txt,.md,.docx,.doc,.eml,.msg"
+          />
+          <Button asChild>
+            <label htmlFor="file-upload" className="cursor-pointer">
+              Choose Files
+            </label>
+          </Button>
+        </div>
+
+        {/* Upload Queue */}
+        {uploadedFiles.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium">Processing Queue</h4>
+              <Badge variant="outline">{uploadedFiles.length} files</Badge>
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {uploadedFiles.map((file) => (
+                <Card key={file.id} className="p-3">
+                  <div className="flex items-center gap-3">
+                    <File className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{file.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className={
+                          file.status === 'completed' ? 'bg-success/20 text-success border-success/30' :
+                          file.status === 'processing' ? 'bg-warning/20 text-warning border-warning/30' :
+                          file.status === 'error' ? 'bg-destructive/20 text-destructive border-destructive/30' :
+                          'bg-muted text-muted-foreground border-border'
+                        }>
+                          {file.status}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                      {file.status === 'processing' && file.progress !== undefined && (
+                        <Progress value={file.progress} className="mt-2 h-1" />
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(file.id)}
+                      className="flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Active Sources Configuration */}
       <div className="space-y-6">
