@@ -54,13 +54,13 @@ const Index = () => {
                     <Clock className="h-3 w-3" />
                     History
                   </TabsTrigger>
-                  <TabsTrigger value="settings" className="flex items-center gap-2 text-xs">
-                    <Settings className="h-3 w-3" />
-                    Settings
-                  </TabsTrigger>
                   <TabsTrigger value="setup" className="flex items-center gap-2 text-xs">
                     <BotIcon className="h-3 w-3" />
                     Build a Bot
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" className="flex items-center gap-2 text-xs">
+                    <Settings className="h-3 w-3" />
+                    Settings
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
