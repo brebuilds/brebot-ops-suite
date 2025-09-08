@@ -38,6 +38,9 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
     selectedTools: [] as string[],
     selectedWorkflow: "",
     n8nWebhook: "",
+    n8nApiEndpoint: "",
+    n8nApiToken: "",
+    mcpEnabled: false,
     managedEmployees: [] as string[],
     infoResource: null as File | null
   });
@@ -45,7 +48,7 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
   const isBreBot = botType === "brebot";
   const isManager = botType === "manager";
   const isEmployee = botType === "employee";
-  const totalSteps = isBreBot ? 4 : 3;
+  const totalSteps = isBreBot ? 5 : 3; // BreBot gets an extra step for orchestration
 
   const handleToolToggle = (tool: string) => {
     setFormData(prev => ({
@@ -162,49 +165,77 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
             <div className="space-y-6">
               <div className="text-center">
                 <FileText className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-semibold">Deep Knowledge Setup</h3>
+                <h3 className="text-xl font-semibold">Orchestration Capabilities</h3>
                 <p className="text-muted-foreground">
-                  BreBot requires comprehensive Q&A and understanding setup
+                  Configure BreBot's ability to manage workflows and create bots
                 </p>
               </div>
               
-              <Card className="bg-muted/50">
-                <CardContent className="p-6">
-                  <div className="text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      BreBot's full setup includes the comprehensive onboarding wizard with:
-                    </p>
-                    <div className="space-y-2 text-left">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="n8n-api">n8n API Endpoint</Label>
+                  <Input
+                    id="n8n-api"
+                    value={formData.n8nApiEndpoint || ""}
+                    onChange={(e) => setFormData(prev => ({ ...prev, n8nApiEndpoint: e.target.value }))}
+                    placeholder="https://your-n8n-instance.com/api"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    BreBot will use this to create and manage workflows
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="n8n-token">n8n API Token</Label>
+                  <Input
+                    id="n8n-token"
+                    type="password"
+                    value={formData.n8nApiToken || ""}
+                    onChange={(e) => setFormData(prev => ({ ...prev, n8nApiToken: e.target.value }))}
+                    placeholder="Your n8n API token"
+                  />
+                </div>
+
+                <div>
+                  <Label>MCP Integration</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="mcp-enabled"
+                        checked={formData.mcpEnabled || false}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, mcpEnabled: !!checked }))}
+                      />
+                      <Label htmlFor="mcp-enabled" className="text-sm font-normal">
+                        Enable Model Context Protocol for advanced workflow creation
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                <Card className="bg-muted/50">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium mb-2">BreBot's Orchestration Powers</h4>
+                    <div className="space-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                        <span className="text-sm">Identity & Values Configuration</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                        <span>Create and modify n8n workflows via API</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                        <span className="text-sm">Comprehensive Q&A Sessions</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                        <span>Dynamically create employee and manager bots</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                        <span className="text-sm">Knowledge Sources Integration</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                        <span>Assign roles and responsibilities to team members</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                        <span className="text-sm">Advanced Workflow Configuration</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                        <span>Monitor and optimize organizational performance</span>
                       </div>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => {
-                        // This would redirect to the full setup wizard
-                        console.log("Redirecting to full BreBot setup wizard");
-                      }}
-                    >
-                      Launch Full Setup Wizard
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           );
         } else {
@@ -389,6 +420,60 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
         );
 
       case 4:
+        if (isBreBot) {
+          return (
+            <div className="space-y-6">
+              <div className="text-center">
+                <FileText className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-semibold">Deep Knowledge Setup</h3>
+                <p className="text-muted-foreground">
+                  Complete BreBot's comprehensive understanding configuration
+                </p>
+              </div>
+              
+              <Card className="bg-muted/50">
+                <CardContent className="p-6">
+                  <div className="text-center space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      BreBot's deep configuration includes:
+                    </p>
+                    <div className="space-y-2 text-left">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <span className="text-sm">Identity & Values Configuration</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <span className="text-sm">Comprehensive Q&A Sessions</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <span className="text-sm">Knowledge Sources Integration</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <span className="text-sm">Advanced Workflow Configuration</span>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        console.log("Launching full BreBot setup wizard");
+                      }}
+                    >
+                      Launch Full Setup Wizard
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        } else {
+          return this.renderSummary();
+        }
+
+      case 5:
         return (
           <div className="space-y-6">
             <div className="text-center">
@@ -397,7 +482,7 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
               </div>
               <h3 className="text-xl font-semibold">Setup Complete!</h3>
               <p className="text-muted-foreground">
-                Your bot is ready to be deployed
+                {isBreBot ? "BreBot is ready to orchestrate your organization" : "Your bot is ready to be deployed"}
               </p>
             </div>
 
@@ -415,6 +500,16 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
                 <div>
                   <span className="font-medium">Department:</span> {formData.department}
                 </div>
+                {isBreBot && (
+                  <>
+                    <div>
+                      <span className="font-medium">n8n API:</span> {formData.n8nApiEndpoint || "Not configured"}
+                    </div>
+                    <div>
+                      <span className="font-medium">MCP Enabled:</span> {formData.mcpEnabled ? "Yes" : "No"}
+                    </div>
+                  </>
+                )}
                 <div>
                   <span className="font-medium">Tools:</span> {formData.selectedTools.length} selected
                 </div>
