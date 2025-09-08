@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bot, Users, Plus, CheckCircle, AlertTriangle, Pause, Search } from "lucide-react";
 import { BotSetupWizard } from "./BotSetupWizard";
+import { BrebotChat } from "../chat/BrebotChat";
 
 interface BotEmployee {
   id: string;
@@ -131,6 +132,7 @@ export function BotsInterface() {
   const [selectedBot, setSelectedBot] = useState<BotEmployee | null>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [setupBotType, setSetupBotType] = useState<"brebot" | "employee" | "manager" | null>(null);
+  const [showBrebotChat, setShowBrebotChat] = useState(false);
 
   const departments = Array.from(new Set(mockEmployees.map(emp => emp.department)));
   
@@ -141,111 +143,133 @@ export function BotsInterface() {
     mockEmployees.filter(emp => emp.reportsTo === botId);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-foreground flex items-center gap-3">
-            <Users className="h-6 w-6 text-primary" />
-            Your Employees
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Manage your bot workforce and organizational structure
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              setSetupBotType("manager");
-              setShowSetupWizard(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Manager
-          </Button>
-          <Button 
-            className="bg-gradient-primary text-primary-foreground shadow-glow"
-            onClick={() => {
-              setSetupBotType("employee");
-              setShowSetupWizard(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Hire Employee
-          </Button>
-        </div>
-      </div>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+        {/* Main Organizational View */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground flex items-center gap-3">
+                <Users className="h-6 w-6 text-primary" />
+                Your Employees
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                Manage your bot workforce and organizational structure
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setSetupBotType("manager");
+                  setShowSetupWizard(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Manager
+              </Button>
+              <Button 
+                className="bg-gradient-primary text-primary-foreground shadow-glow"
+                onClick={() => {
+                  setSetupBotType("employee");
+                  setShowSetupWizard(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Hire Employee
+              </Button>
+            </div>
+          </div>
 
-      {/* Organizational Chart */}
-      <div className="space-y-8">
-        {/* CEO Level */}
-        <div className="flex justify-center">
-          {mockEmployees.filter(emp => emp.level === 0).map(bot => (
-            <Card 
-              key={bot.id}
-              className="w-64 bg-card border-card-border shadow-card hover:shadow-hover transition-all cursor-pointer"
-              onClick={() => setSelectedBot(bot)}
-            >
-              <CardContent className="p-4 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="p-3 rounded-full bg-gradient-primary">
-                    <Bot className="h-8 w-8 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{bot.name}</h3>
-                    <p className="text-sm text-muted-foreground">{bot.role}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(bot.status)}
-                    <Badge className={getStatusColor(bot.status)}>
-                      {bot.status.replace('-', ' ')}
-                    </Badge>
+          {/* Organizational Chart */}
+          <div className="space-y-8">
+            {/* CEO Level */}
+            <div className="flex justify-center">
+              {mockEmployees.filter(emp => emp.level === 0).map(bot => (
+                <Card 
+                  key={bot.id}
+                  className="w-64 bg-card border-card-border shadow-card hover:shadow-hover transition-all cursor-pointer"
+                  onClick={() => setSelectedBot(bot)}
+                >
+                  <CardContent className="p-4 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="p-3 rounded-full bg-gradient-primary">
+                        <Bot className="h-8 w-8 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">{bot.name}</h3>
+                        <p className="text-sm text-muted-foreground">{bot.role}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(bot.status)}
+                        <Badge className={getStatusColor(bot.status)}>
+                          {bot.status.replace('-', ' ')}
+                        </Badge>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowBrebotChat(true);
+                        }}
+                      >
+                        Chat with BreBot
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Department Level */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {departments.map(department => (
+                <div key={department} className="space-y-4">
+                  <h3 className="text-lg font-medium text-foreground text-center">
+                    {department}
+                  </h3>
+                  <div className="space-y-3">
+                    {getBotsByDepartment(department).map(bot => (
+                      <Card 
+                        key={bot.id}
+                        className="bg-card border-card-border shadow-card hover:shadow-hover transition-all cursor-pointer"
+                        onClick={() => setSelectedBot(bot)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <Bot className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-foreground">{bot.name}</h4>
+                              <p className="text-xs text-muted-foreground">{bot.role}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              {getStatusIcon(bot.status)}
+                              <Badge 
+                                className={`text-xs ${getStatusColor(bot.status)}`}
+                              >
+                                {bot.status.replace('-', ' ')}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Department Level */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {departments.map(department => (
-            <div key={department} className="space-y-4">
-              <h3 className="text-lg font-medium text-foreground text-center">
-                {department}
-              </h3>
-              <div className="space-y-3">
-                {getBotsByDepartment(department).map(bot => (
-                  <Card 
-                    key={bot.id}
-                    className="bg-card border-card-border shadow-card hover:shadow-hover transition-all cursor-pointer"
-                    onClick={() => setSelectedBot(bot)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Bot className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-foreground">{bot.name}</h4>
-                          <p className="text-xs text-muted-foreground">{bot.role}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {getStatusIcon(bot.status)}
-                          <Badge 
-                            className={`text-xs ${getStatusColor(bot.status)}`}
-                          >
-                            {bot.status.replace('-', ' ')}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          ))}
+        {/* BreBot Chat Panel */}
+        <div className="lg:col-span-1">
+          <Card className="h-full bg-card border-card-border shadow-card">
+            <BrebotChat />
+          </Card>
         </div>
       </div>
 
@@ -339,6 +363,6 @@ export function BotsInterface() {
         }}
         botType={setupBotType}
       />
-    </div>
+    </>
   );
 }
