@@ -6,64 +6,124 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Globe, Bot, Zap, CheckCircle, AlertCircle, Settings } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Globe, Bot, Zap, CheckCircle, AlertCircle, Settings, Plus, Edit, Trash2, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Connection {
   id: string;
   name: string;
-  type: string;
+  type: "ollama" | "openai" | "anthropic" | "custom";
   url: string;
   status: "connected" | "disconnected" | "error";
   enabled: boolean;
   model?: string;
+  apiKey?: string;
+  headers?: Record<string, string>;
+  description?: string;
 }
+
+const CONNECTION_TYPES = [
+  { value: "ollama", label: "Ollama", requiresApiKey: false },
+  { value: "openai", label: "OpenAI", requiresApiKey: true },
+  { value: "anthropic", label: "Anthropic", requiresApiKey: true },
+  { value: "custom", label: "Custom API", requiresApiKey: false }
+];
 
 export function ConnectionsTab() {
   const { toast } = useToast();
   const [connections, setConnections] = useState<Connection[]>([
     {
-      id: "ollama",
-      name: "Ollama",
-      type: "LLM Provider",
+      id: "ollama-default",
+      name: "Ollama Local",
+      type: "ollama",
       url: "http://localhost:11434",
       status: "disconnected",
       enabled: false,
-      model: "llama3.2"
+      model: "llama3.2",
+      description: "Local Ollama instance"
     }
   ]);
 
-  const [ollamaConfig, setOllamaConfig] = useState({
-    url: "http://localhost:11434",
-    model: "llama3.2",
-    enabled: false
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
+  const [newConnection, setNewConnection] = useState<Partial<Connection>>({
+    name: "",
+    type: "ollama",
+    url: "",
+    model: "",
+    apiKey: "",
+    headers: {},
+    description: ""
   });
 
-  const testOllamaConnection = async () => {
+  const testConnection = async (connection: Connection) => {
     try {
-      const response = await fetch(`${ollamaConfig.url}/api/version`);
-      if (response.ok) {
+      let testUrl = connection.url;
+      let testOptions: RequestInit = {};
+
+      switch (connection.type) {
+        case "ollama":
+          testUrl = `${connection.url}/api/version`;
+          break;
+        case "openai":
+          testUrl = "https://api.openai.com/v1/models";
+          testOptions = {
+            headers: {
+              "Authorization": `Bearer ${connection.apiKey}`,
+              "Content-Type": "application/json"
+            }
+          };
+          break;
+        case "anthropic":
+          testUrl = "https://api.anthropic.com/v1/messages";
+          testOptions = {
+            method: "POST",
+            headers: {
+              "x-api-key": connection.apiKey || "",
+              "Content-Type": "application/json",
+              "anthropic-version": "2023-06-01"
+            },
+            body: JSON.stringify({
+              model: connection.model || "claude-3-sonnet-20240229",
+              max_tokens: 1,
+              messages: [{ role: "user", content: "test" }]
+            })
+          };
+          break;
+        case "custom":
+          testOptions = {
+            headers: connection.headers || {}
+          };
+          break;
+      }
+
+      const response = await fetch(testUrl, testOptions);
+      
+      if (response.ok || response.status === 400) { // 400 might be expected for some test calls
         setConnections(prev => prev.map(conn => 
-          conn.id === "ollama" 
-            ? { ...conn, status: "connected" as const, url: ollamaConfig.url, model: ollamaConfig.model }
+          conn.id === connection.id 
+            ? { ...conn, status: "connected" as const }
             : conn
         ));
         toast({
           title: "Connection successful",
-          description: "Successfully connected to Ollama"
+          description: `Successfully connected to ${connection.name}`
         });
       } else {
-        throw new Error("Failed to connect");
+        throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
       setConnections(prev => prev.map(conn => 
-        conn.id === "ollama" 
+        conn.id === connection.id 
           ? { ...conn, status: "error" as const }
           : conn
       ));
       toast({
         title: "Connection failed",
-        description: "Could not connect to Ollama. Make sure it's running.",
+        description: `Could not connect to ${connection.name}. ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }
@@ -73,10 +133,88 @@ export function ConnectionsTab() {
     setConnections(prev => prev.map(conn => 
       conn.id === id ? { ...conn, enabled } : conn
     ));
-    
-    if (id === "ollama") {
-      setOllamaConfig(prev => ({ ...prev, enabled }));
+  };
+
+  const addConnection = () => {
+    if (!newConnection.name || !newConnection.url) {
+      toast({
+        title: "Validation Error",
+        description: "Name and URL are required",
+        variant: "destructive"
+      });
+      return;
     }
+
+    const connection: Connection = {
+      id: `${newConnection.type}-${Date.now()}`,
+      name: newConnection.name,
+      type: newConnection.type as Connection["type"],
+      url: newConnection.url,
+      status: "disconnected",
+      enabled: false,
+      model: newConnection.model,
+      apiKey: newConnection.apiKey,
+      headers: newConnection.headers,
+      description: newConnection.description
+    };
+
+    setConnections(prev => [...prev, connection]);
+    setNewConnection({
+      name: "",
+      type: "ollama",
+      url: "",
+      model: "",
+      apiKey: "",
+      headers: {},
+      description: ""
+    });
+    setIsAddDialogOpen(false);
+    
+    toast({
+      title: "Connection added",
+      description: `${connection.name} has been added successfully`
+    });
+  };
+
+  const deleteConnection = (id: string) => {
+    setConnections(prev => prev.filter(conn => conn.id !== id));
+    toast({
+      title: "Connection deleted",
+      description: "Connection has been removed"
+    });
+  };
+
+  const startEditing = (connection: Connection) => {
+    setEditingConnection(connection);
+    setNewConnection(connection);
+    setIsAddDialogOpen(true);
+  };
+
+  const saveEdit = () => {
+    if (!editingConnection) return;
+    
+    setConnections(prev => prev.map(conn => 
+      conn.id === editingConnection.id 
+        ? { ...conn, ...newConnection }
+        : conn
+    ));
+    
+    setEditingConnection(null);
+    setNewConnection({
+      name: "",
+      type: "ollama",
+      url: "",
+      model: "",
+      apiKey: "",
+      headers: {},
+      description: ""
+    });
+    setIsAddDialogOpen(false);
+    
+    toast({
+      title: "Connection updated",
+      description: "Connection has been updated successfully"
+    });
   };
 
   const getStatusIcon = (status: string) => {
@@ -101,72 +239,160 @@ export function ConnectionsTab() {
     }
   };
 
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "ollama":
+        return <Bot className="h-4 w-4" />;
+      case "openai":
+      case "anthropic":
+        return <Zap className="h-4 w-4" />;
+      default:
+        return <Globe className="h-4 w-4" />;
+    }
+  };
+
+  const selectedConnectionType = CONNECTION_TYPES.find(ct => ct.value === newConnection.type);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Connections</h2>
-        <p className="text-muted-foreground">Manage external service connections for BreBot</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-foreground mb-2">Connections</h2>
+          <p className="text-muted-foreground">Manage external service connections for BreBot</p>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Connection
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingConnection ? "Edit Connection" : "Add New Connection"}
+              </DialogTitle>
+              <DialogDescription>
+                Configure a new API connection for BreBot to use
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="connection-name">Connection Name</Label>
+                  <Input
+                    id="connection-name"
+                    value={newConnection.name}
+                    onChange={(e) => setNewConnection(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="My API Connection"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="connection-type">Type</Label>
+                  <Select 
+                    value={newConnection.type} 
+                    onValueChange={(value) => setNewConnection(prev => ({ ...prev, type: value as Connection["type"] }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select connection type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONNECTION_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="connection-url">URL</Label>
+                <Input
+                  id="connection-url"
+                  value={newConnection.url}
+                  onChange={(e) => setNewConnection(prev => ({ ...prev, url: e.target.value }))}
+                  placeholder={
+                    newConnection.type === "ollama" 
+                      ? "http://localhost:11434"
+                      : newConnection.type === "openai"
+                      ? "https://api.openai.com/v1"
+                      : "https://api.example.com"
+                  }
+                />
+              </div>
+
+              {selectedConnectionType?.requiresApiKey && (
+                <div className="space-y-2">
+                  <Label htmlFor="connection-apikey">API Key</Label>
+                  <Input
+                    id="connection-apikey"
+                    type="password"
+                    value={newConnection.apiKey}
+                    onChange={(e) => setNewConnection(prev => ({ ...prev, apiKey: e.target.value }))}
+                    placeholder="sk-..."
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="connection-model">Model (Optional)</Label>
+                <Input
+                  id="connection-model"
+                  value={newConnection.model}
+                  onChange={(e) => setNewConnection(prev => ({ ...prev, model: e.target.value }))}
+                  placeholder={
+                    newConnection.type === "ollama" 
+                      ? "llama3.2"
+                      : newConnection.type === "openai"
+                      ? "gpt-4"
+                      : "model-name"
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="connection-description">Description (Optional)</Label>
+                <Textarea
+                  id="connection-description"
+                  value={newConnection.description}
+                  onChange={(e) => setNewConnection(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Brief description of this connection"
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsAddDialogOpen(false);
+                  setEditingConnection(null);
+                  setNewConnection({
+                    name: "",
+                    type: "ollama",
+                    url: "",
+                    model: "",
+                    apiKey: "",
+                    headers: {},
+                    description: ""
+                  });
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={editingConnection ? saveEdit : addConnection}>
+                {editingConnection ? "Update" : "Add"} Connection
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Ollama Configuration */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Bot className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                Ollama Integration
-                <Badge variant={getStatusColor(connections.find(c => c.id === "ollama")?.status || "disconnected")}>
-                  {connections.find(c => c.id === "ollama")?.status || "disconnected"}
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Connect BreBot to your local Ollama instance for AI capabilities
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ollama-url">Ollama URL</Label>
-              <Input
-                id="ollama-url"
-                value={ollamaConfig.url}
-                onChange={(e) => setOllamaConfig(prev => ({ ...prev, url: e.target.value }))}
-                placeholder="http://localhost:11434"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ollama-model">Model</Label>
-              <Input
-                id="ollama-model"
-                value={ollamaConfig.model}
-                onChange={(e) => setOllamaConfig(prev => ({ ...prev, model: e.target.value }))}
-                placeholder="llama3.2"
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="ollama-enabled"
-                checked={ollamaConfig.enabled}
-                onCheckedChange={(enabled) => toggleConnection("ollama", enabled)}
-              />
-              <Label htmlFor="ollama-enabled">Enable Ollama Integration</Label>
-            </div>
-            <Button onClick={testOllamaConnection} variant="outline">
-              Test Connection
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Connection Status Overview */}
+      {/* Active Connections */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -181,52 +407,105 @@ export function ConnectionsTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {connections.map((connection) => (
-              <div key={connection.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(connection.status)}
-                  <div>
-                    <div className="font-medium text-foreground">{connection.name}</div>
-                    <div className="text-sm text-muted-foreground">{connection.type}</div>
-                    {connection.model && (
-                      <div className="text-xs text-muted-foreground">Model: {connection.model}</div>
-                    )}
+            {connections.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No connections configured yet</p>
+                <p className="text-sm">Add your first connection to get started</p>
+              </div>
+            ) : (
+              connections.map((connection) => (
+                <div key={connection.id} className="flex items-center justify-between p-4 border border-border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {getStatusIcon(connection.status)}
+                    <div className="flex items-center gap-2">
+                      {getTypeIcon(connection.type)}
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground">{connection.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {CONNECTION_TYPES.find(ct => ct.value === connection.type)?.label} • {connection.url}
+                      </div>
+                      {connection.model && (
+                        <div className="text-xs text-muted-foreground">Model: {connection.model}</div>
+                      )}
+                      {connection.description && (
+                        <div className="text-xs text-muted-foreground">{connection.description}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={getStatusColor(connection.status)}>
+                      {connection.status}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => testConnection(connection)}
+                    >
+                      Test
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => startEditing(connection)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteConnection(connection.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Switch
+                      checked={connection.enabled}
+                      onCheckedChange={(enabled) => toggleConnection(connection.id, enabled)}
+                    />
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant={getStatusColor(connection.status)}>
-                    {connection.status}
-                  </Badge>
-                  <Switch
-                    checked={connection.enabled}
-                    onCheckedChange={(enabled) => toggleConnection(connection.id, enabled)}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Future Connections */}
+      {/* Connection Templates */}
       <Card className="border-dashed">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-muted">
-              <Zap className="h-5 w-5 text-muted-foreground" />
+              <Key className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <CardTitle className="text-muted-foreground">Coming Soon</CardTitle>
-              <CardDescription>Additional connection types will be added here</CardDescription>
+              <CardTitle className="text-muted-foreground">Supported Connection Types</CardTitle>
+              <CardDescription>Add connections for these popular AI services</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground space-y-2">
-            <div>• OpenAI API Integration</div>
-            <div>• Anthropic Claude Integration</div>
-            <div>• Custom API Endpoints</div>
-            <div>• Webhook Connections</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Bot className="h-4 w-4" />
+                <strong>Ollama</strong> - Local AI models
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                <strong>OpenAI</strong> - GPT models via API
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                <strong>Anthropic</strong> - Claude models
+              </div>
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <strong>Custom API</strong> - Any REST API
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
