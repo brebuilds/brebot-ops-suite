@@ -130,7 +130,7 @@ const getStatusColor = (status: BotEmployee["status"]) => {
 export function BotsInterface() {
   const [selectedBot, setSelectedBot] = useState<BotEmployee | null>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
-  const [setupBotType, setSetupBotType] = useState<"brebot" | "employee" | null>(null);
+  const [setupBotType, setSetupBotType] = useState<"brebot" | "employee" | "manager" | null>(null);
 
   const departments = Array.from(new Set(mockEmployees.map(emp => emp.department)));
   
@@ -153,16 +153,28 @@ export function BotsInterface() {
             Manage your bot workforce and organizational structure
           </p>
         </div>
-        <Button 
-          className="bg-gradient-primary text-primary-foreground shadow-glow"
-          onClick={() => {
-            setSetupBotType("employee");
-            setShowSetupWizard(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Hire New Bot
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              setSetupBotType("manager");
+              setShowSetupWizard(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Manager
+          </Button>
+          <Button 
+            className="bg-gradient-primary text-primary-foreground shadow-glow"
+            onClick={() => {
+              setSetupBotType("employee");
+              setShowSetupWizard(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Hire Employee
+          </Button>
+        </div>
       </div>
 
       {/* Organizational Chart */}

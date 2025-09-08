@@ -13,7 +13,7 @@ import { Bot, ArrowRight, Upload, Wrench, Workflow, FileText } from "lucide-reac
 interface BotSetupWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  botType: "brebot" | "employee" | null;
+  botType: "brebot" | "employee" | "manager" | null;
 }
 
 const availableTools = [
@@ -37,10 +37,14 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
     description: "",
     selectedTools: [] as string[],
     selectedWorkflow: "",
+    n8nWebhook: "",
+    managedEmployees: [] as string[],
     infoResource: null as File | null
   });
 
   const isBreBot = botType === "brebot";
+  const isManager = botType === "manager";
+  const isEmployee = botType === "employee";
   const totalSteps = isBreBot ? 4 : 3;
 
   const handleToolToggle = (tool: string) => {
@@ -85,12 +89,16 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
                 <Bot className="h-8 w-8 text-primary-foreground" />
               </div>
               <h3 className="text-xl font-semibold">
-                {isBreBot ? "Setup BreBot (CEO)" : "Create New Employee Bot"}
+                {isBreBot ? "Setup BreBot (CEO)" : 
+                 isManager ? "Create New Manager Bot" : 
+                 "Create New Employee Bot"}
               </h3>
               <p className="text-muted-foreground mt-2">
                 {isBreBot 
                   ? "Configure your digital clone with deep understanding and capabilities"
-                  : "Set up a specialized bot for your team"
+                  : isManager
+                  ? "Set up a bot that manages other bots and reports on their performance"
+                  : "Set up a specialized bot linked to an n8n workflow"
                 }
               </p>
             </div>
@@ -102,7 +110,7 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder={isBreBot ? "BreBot Prime" : "Enter bot name"}
+                  placeholder={isBreBot ? "BreBot Prime" : isManager ? "Manager Bot" : "Employee Bot"}
                 />
               </div>
 
@@ -112,7 +120,7 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
                   id="role"
                   value={formData.role}
                   onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                  placeholder={isBreBot ? "Chief Executive Bot" : "e.g., Lead Designer, Content Manager"}
+                  placeholder={isBreBot ? "Chief Executive Bot" : isManager ? "e.g., Design Manager, Team Lead" : "e.g., Content Creator, Designer"}
                 />
               </div>
 
@@ -204,102 +212,180 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
             <div className="space-y-6">
               <div className="text-center">
                 <Wrench className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-semibold">Tools & Access</h3>
+                <h3 className="text-xl font-semibold">
+                  {isManager ? "Management Setup" : "Tools & Access"}
+                </h3>
                 <p className="text-muted-foreground">
-                  Select which tools this bot can access
+                  {isManager 
+                    ? "Configure management and reporting capabilities"
+                    : "Select which tools this bot can access"
+                  }
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <Label>Available Tools</Label>
-                <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-                  {availableTools.map((tool) => (
-                    <div key={tool} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={tool}
-                        checked={formData.selectedTools.includes(tool)}
-                        onCheckedChange={() => handleToolToggle(tool)}
-                      />
-                      <Label htmlFor={tool} className="text-sm font-normal">
-                        {tool}
-                      </Label>
+              {isManager ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Managed Employees</Label>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Select which employee bots this manager will oversee
+                    </p>
+                    <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                      {["DesignBot Alpha", "CodeBot Beta", "ContentBot Gamma", "SupportBot Delta"].map((employee) => (
+                        <div key={employee} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={employee}
+                            checked={formData.managedEmployees.includes(employee)}
+                            onCheckedChange={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                managedEmployees: prev.managedEmployees.includes(employee)
+                                  ? prev.managedEmployees.filter(e => e !== employee)
+                                  : [...prev.managedEmployees, employee]
+                              }));
+                            }}
+                          />
+                          <Label htmlFor={employee} className="text-sm font-normal">
+                            {employee}
+                          </Label>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-
-                <div className="mt-4">
-                  <Label>Selected Tools</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.selectedTools.map((tool) => (
-                      <Badge key={tool} variant="outline" className="bg-primary/10">
-                        {tool}
-                      </Badge>
-                    ))}
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <Label>Available Tools</Label>
+                  <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                    {availableTools.map((tool) => (
+                      <div key={tool} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={tool}
+                          checked={formData.selectedTools.includes(tool)}
+                          onCheckedChange={() => handleToolToggle(tool)}
+                        />
+                        <Label htmlFor={tool} className="text-sm font-normal">
+                          {tool}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4">
+                    <Label>Selected Tools</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.selectedTools.map((tool) => (
+                        <Badge key={tool} variant="outline" className="bg-primary/10">
+                          {tool}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         }
 
       case 3:
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Workflow className="h-12 w-12 text-primary mx-auto mb-4" />
-              <h3 className="text-xl font-semibold">Workflow Connection</h3>
-              <p className="text-muted-foreground">
-                Connect this bot to a workflow
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label>Primary Workflow</Label>
-                <Select onValueChange={(value) => setFormData(prev => ({ ...prev, selectedWorkflow: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a workflow" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableWorkflows.map((workflow) => (
-                      <SelectItem key={workflow} value={workflow}>
-                        {workflow}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-6">
+              <div className="text-center">
+                <Workflow className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h3 className="text-xl font-semibold">
+                  {isManager ? "Reporting Setup" : "Workflow Connection"}
+                </h3>
+                <p className="text-muted-foreground">
+                  {isManager 
+                    ? "Configure reporting and status tracking"
+                    : "Connect this bot to an n8n workflow"
+                  }
+                </p>
               </div>
 
-              <div>
-                <Label>Information Resource</Label>
-                <div className="space-y-2">
-                  <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-                    <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Upload a knowledge document for this bot
-                    </p>
-                    <input
-                      type="file"
-                      onChange={handleFileUpload}
-                      accept=".pdf,.doc,.docx,.txt,.md"
-                      className="hidden"
-                      id="file-upload"
+              <div className="space-y-4">
+                {isEmployee && (
+                  <div>
+                    <Label>n8n Workflow Webhook</Label>
+                    <Input
+                      value={formData.n8nWebhook}
+                      onChange={(e) => setFormData(prev => ({ ...prev, n8nWebhook: e.target.value }))}
+                      placeholder="https://your-n8n-instance.com/webhook/..."
                     />
-                    <Label htmlFor="file-upload" className="cursor-pointer">
-                      <Button variant="outline" size="sm" asChild>
-                        <span>Choose File</span>
-                      </Button>
-                    </Label>
-                  </div>
-                  {formData.infoResource && (
-                    <p className="text-sm text-muted-foreground">
-                      Selected: {formData.infoResource.name}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This bot will trigger this n8n workflow when activated
                     </p>
-                  )}
+                  </div>
+                )}
+
+                {isManager && (
+                  <div>
+                    <Label>Primary Workflow</Label>
+                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, selectedWorkflow: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reporting workflow" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily-report">Daily Status Reports</SelectItem>
+                        <SelectItem value="weekly-summary">Weekly Team Summary</SelectItem>
+                        <SelectItem value="performance-metrics">Performance Metrics</SelectItem>
+                        <SelectItem value="resource-allocation">Resource Allocation Report</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {!isManager && (
+                  <div>
+                    <Label>Primary Workflow</Label>
+                    <Select onValueChange={(value) => setFormData(prev => ({ ...prev, selectedWorkflow: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a workflow" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableWorkflows.map((workflow) => (
+                          <SelectItem key={workflow} value={workflow}>
+                            {workflow}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div>
+                  <Label>Information Resource</Label>
+                  <div className="space-y-2">
+                    <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
+                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {isManager 
+                          ? "Upload management guidelines or reporting templates"
+                          : "Upload a knowledge document for this bot"
+                        }
+                      </p>
+                      <input
+                        type="file"
+                        onChange={handleFileUpload}
+                        accept=".pdf,.doc,.docx,.txt,.md"
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <Label htmlFor="file-upload" className="cursor-pointer">
+                        <Button variant="outline" size="sm" asChild>
+                          <span>Choose File</span>
+                        </Button>
+                      </Label>
+                    </div>
+                    {formData.infoResource && (
+                      <p className="text-sm text-muted-foreground">
+                        Selected: {formData.infoResource.name}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
         );
 
       case 4:
@@ -335,6 +421,16 @@ export function BotSetupWizard({ isOpen, onClose, botType }: BotSetupWizardProps
                 <div>
                   <span className="font-medium">Workflow:</span> {formData.selectedWorkflow || "None"}
                 </div>
+                {isEmployee && (
+                  <div>
+                    <span className="font-medium">n8n Webhook:</span> {formData.n8nWebhook || "None"}
+                  </div>
+                )}
+                {isManager && (
+                  <div>
+                    <span className="font-medium">Managed Employees:</span> {formData.managedEmployees.length} selected
+                  </div>
+                )}
                 <div>
                   <span className="font-medium">Resource:</span> {formData.infoResource?.name || "None"}
                 </div>
