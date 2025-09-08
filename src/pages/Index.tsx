@@ -8,7 +8,7 @@ import { SettingsTab } from "@/components/tabs/SettingsTab";
 import { ConnectionsTab } from "@/components/tabs/ConnectionsTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Bot, Activity, Clock, Settings, Bot as BotIcon, Plug } from "lucide-react";
+import { Bot, Activity, Clock, Settings, Bot as BotIcon, Plug, MessageCircle } from "lucide-react";
 import { BotsInterface } from "@/components/bots/BotsInterface";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("chat");
@@ -42,6 +42,10 @@ const Index = () => {
               {/* Main Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-muted">
+                  <TabsTrigger value="chat" className="flex items-center gap-2 text-xs">
+                    <MessageCircle className="h-3 w-3" />
+                    Chat
+                  </TabsTrigger>
                   <TabsTrigger value="status" className="flex items-center gap-2 text-xs">
                     <Activity className="h-3 w-3" />
                     Status
