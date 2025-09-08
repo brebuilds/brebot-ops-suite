@@ -5,9 +5,10 @@ import { ChatInterface } from "@/components/chat/ChatInterface";
 import { StatusTab } from "@/components/tabs/StatusTab";
 import { HistoryTab } from "@/components/tabs/HistoryTab";
 import { SettingsTab } from "@/components/tabs/SettingsTab";
+import { ConnectionsTab } from "@/components/tabs/ConnectionsTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Bot, Activity, Clock, Settings, Bot as BotIcon } from "lucide-react";
+import { Bot, Activity, Clock, Settings, Bot as BotIcon, Plug } from "lucide-react";
 import { BotsInterface } from "@/components/bots/BotsInterface";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("chat");
@@ -53,6 +54,10 @@ const Index = () => {
                     <BotIcon className="h-3 w-3" />
                     Bots
                   </TabsTrigger>
+                  <TabsTrigger value="connections" className="flex items-center gap-2 text-xs">
+                    <Plug className="h-3 w-3" />
+                    Connections
+                  </TabsTrigger>
                   <TabsTrigger value="settings" className="flex items-center gap-2 text-xs">
                     <Settings className="h-3 w-3" />
                     Settings
@@ -66,7 +71,7 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full p-6">
-        {activeTab === "chat" || !["status", "history", "settings", "setup"].includes(activeTab) ? <div className="h-full">
+      {activeTab === "chat" || !["status", "history", "settings", "setup", "connections"].includes(activeTab) ? <div className="h-full">
             <ChatInterface isSetupComplete={isSetupComplete} />
           </div> : <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
             <TabsContent value="status" className="mt-0 h-full">
@@ -75,6 +80,10 @@ const Index = () => {
             
             <TabsContent value="history" className="mt-0 h-full">
               <HistoryTab />
+            </TabsContent>
+            
+            <TabsContent value="connections" className="mt-0 h-full">
+              <ConnectionsTab />
             </TabsContent>
             
             <TabsContent value="settings" className="mt-0 h-full">
