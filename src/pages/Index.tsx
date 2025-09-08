@@ -25,7 +25,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-gradient-primary">
-                <Bot className="h-6 w-6 text-primary-foreground" />
+                <img src="/lovable-uploads/342b8f4d-eded-4f67-adff-0d943bdc3dea.png" alt="BreBot Logo" className="h-6 w-6" />
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-foreground">BreBot</h1>
